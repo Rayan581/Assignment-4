@@ -495,8 +495,12 @@ public:
     }
 
     // Check if a word is in the tree
-    bool contains(const string &word)
+    bool contains(string word)
     {
+        // Smallercase the word
+        for (int i = 0; i < word.length(); i++)
+            if (word[i] >= 'A' && word[i] <= 'Z')
+                word[i] += 32;
         return contains(root, word);
     }
 
@@ -530,6 +534,46 @@ void load_data(AVLTree &dictionary)
     file.close();
 }
 
+bool isPunctuation(const char c)
+{
+    return c == '.' || c == ',' || c == '!' || c == '?' || c == ':' || c == ';' || c == '"' || c == '\'';
+}
+
+// Check if a string in the dictionary matches with the word by letter substitution
+string substitution(AVLTree &dictionary, const string &word)
+{
+    for (int i = 0; i < word.length(); i++)
+    {
+        if (isPunctuation(word[i]))
+            continue;
+        for (char c = 'a'; c <= 'z'; c++)
+        {
+            if (c == word[i])
+                continue;
+            string newWord = word;
+            newWord[i] = c;
+            if (dictionary.contains(newWord))
+                return newWord;
+        }
+    }
+    return ""; // No match found
+}
+
+// Find a suggestion for the word that closely matches the word in the dictionary
+string suggestion(AVLTree &dictionary, const string &word)
+{
+    string suggestions = "";
+    // Letter Substitution
+    string substitutionWord = substitution(dictionary, word);
+    if (!substitutionWord.empty())
+        suggestions += suggestions + substitutionWord;
+    // Letter Omission
+    // Letter Insertion
+    // Letter Reversal
+
+    return suggestions;
+}
+
 int main()
 {
     initscr(); // Start ncurses mode
@@ -547,6 +591,7 @@ int main()
     while (true)
     {
         char c = getch();
+        string suggestions = "";
 
         clear();     // Clear the screen
         if (c == 27) // ESC key
@@ -570,10 +615,8 @@ int main()
             letters.clear();                // Clear the letters list to form a new word
 
             // Check the word in the dictionary
-            if (dictionary.contains(words.last()))
-                printw("Word '%s' found in the dictionary.\n", words.last().c_str());
-            else
-                printw("Word '%s' not found in the dictionary. \n", words.last().c_str());
+            if (!dictionary.contains(words.last()))
+                suggestions = suggestion(dictionary, words.last());
         }
         else if (c == 12) // CTRL + L
             printw("CTRL + L pressed...!\n");
@@ -587,6 +630,8 @@ int main()
         printw("\n");
         words.print();
         letters.print();
+        if (!suggestions.empty())
+            printw("!(%s)", suggestions.c_str());
     }
 
     getch();
