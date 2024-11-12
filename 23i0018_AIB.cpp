@@ -392,15 +392,15 @@ private:
     }
 
     // Delete a node from the tree
-    Node *deleteTask(Node *node, const string &word)
+    Node *deleteNode(Node *node, const string &word)
     {
         if (node == nullptr)
             return node;
 
         if (word < node->word)
-            node->left = deleteTask(node->left, word);
+            node->left = deleteNode(node->left, word);
         else if (word > node->word)
-            node->right = deleteTask(node->right, word);
+            node->right = deleteNode(node->right, word);
         else
         {
             if (node->left == nullptr || node->right == nullptr)
@@ -413,7 +413,7 @@ private:
             {
                 Node *temp = minValueNode(node->right);
                 node->word = temp->word;
-                node->right = deleteTask(node->right, temp->word);
+                node->right = deleteNode(node->right, temp->word);
             }
         }
 
@@ -436,6 +436,20 @@ private:
         }
 
         return node;
+    }
+
+    // Check if a word is in the list
+    bool contains(Node *node, const string &word)
+    {
+        if (node == nullptr)
+            return false;
+
+        if (word < node->word)
+            return contains(node->left, word);
+        else if (word > node->word)
+            return contains(node->right, word);
+        else
+            return true;
     }
 
     // Print the tree in inorder
@@ -468,19 +482,25 @@ public:
         deleteAll(root);
     }
 
-    // Insert a new task into the tree
+    // Insert a new word into the tree
     void insert(const string &word)
     {
         root = insert(root, word);
     }
 
-    // Delete a task from the tree
-    void deleteTask(const string &word)
+    // Delete a word from the tree
+    void deleteNode(const string &word)
     {
-        root = deleteTask(root, word);
+        root = deleteNode(root, word);
     }
 
-    // Print the tasks in the tree in inorder
+    // Check if a word is in the tree
+    bool contains(const string &word)
+    {
+        return contains(root, word);
+    }
+
+    // Print the words in the tree in inorder
     void print()
     {
         print(root);
@@ -523,28 +543,37 @@ int main()
     AVLTree dictionary;
     load_data(dictionary); // Load data from the dictionary
 
+    // Main notepad loop
     while (true)
     {
         char c = getch();
+
+        clear();     // Clear the screen
         if (c == 27) // ESC key
         {
-            printw("\nExiting...\n");
+            printw("\nExiting...\n"); // Exit the program
             break;
         }
         else if (c == KEY_BACKSPACE || c == 127) // Backspace key
         {
-            if (letters.isEmpty())
+            if (letters.isEmpty()) // If the current letters list is empty, move to the previous word in the words list
             {
                 letters.add(words.last().c_str());
                 words.remove(words.size - 1);
             }
             else
-                letters.remove(letters.size - 1);
+                letters.remove(letters.size - 1); // Else remove a character from the current letters list
         }
-        else if (c == ' ')
+        else if (c == ' ') // When the user presses spacebar
         {
-            words.add(letters.to_string());
-            letters.clear();
+            words.add(letters.to_string()); // Add the currently formed word in the words list
+            letters.clear();                // Clear the letters list to form a new word
+
+            // Check the word in the dictionary
+            if (dictionary.contains(words.last()))
+                printw("Word '%s' found in the dictionary.\n", words.last().c_str());
+            else
+                printw("Word '%s' not found in the dictionary. \n", words.last().c_str());
         }
         else if (c == 12) // CTRL + L
             printw("CTRL + L pressed...!\n");
@@ -553,7 +582,9 @@ int main()
         else
             letters.add(c);
 
-        clear(); // Clear the screen
+        // Display the current state of the notepad
+        printw("|----------------------------------NOTEPAD----------------------------------|\n");
+        printw("\n");
         words.print();
         letters.print();
     }
