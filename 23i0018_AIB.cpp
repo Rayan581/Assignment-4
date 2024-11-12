@@ -9,7 +9,10 @@
 
 using namespace std;
 
-// Implementing a double linked list
+/**
+ * @brief This class implements the doubly linked list, that can also be implemented as a stack or a queue.
+ * @tparam type The type of data to be stored in the list.
+ */
 template <typename type>
 class LinkedList
 {
@@ -19,6 +22,12 @@ private:
         type data;
         Node *next;
         Node *prev;
+
+        Node()
+        {
+            next = nullptr;
+            prev = nullptr;
+        }
     };
     Node *head;
     Node *tail;
@@ -28,6 +37,14 @@ public:
     LinkedList() : head(nullptr), tail(nullptr), size(0) {}
     ~LinkedList()
     {
+        clear();
+        delete head;
+        delete tail;
+    }
+
+    // Clears the list
+    void clear()
+    {
         while (head != nullptr)
         {
             Node *temp = head;
@@ -35,7 +52,11 @@ public:
             delete temp;
         }
         tail = nullptr;
+        size = 0;
     }
+
+    // Returns if the list is empty
+    bool isEmpty() const { return head == nullptr; }
 
     // Adds a node to the list
     void add(const type &data)
@@ -111,6 +132,13 @@ public:
             type data = temp->data;
             delete temp;
             size--;
+
+            if (size == 0)
+            {
+                head = nullptr;
+                tail = nullptr;
+            }
+
             return data;
         }
 
@@ -122,6 +150,13 @@ public:
             type data = temp->data;
             delete temp;
             size--;
+
+            if (size == 0)
+            {
+                head = nullptr;
+                tail = nullptr;
+            }
+
             return data;
         }
 
@@ -134,6 +169,13 @@ public:
         current->next = temp->next;
         delete temp;
         size--;
+
+        if (size == 0)
+        {
+            head = nullptr;
+            tail = nullptr;
+        }
+
         return data;
     }
 
@@ -168,32 +210,64 @@ public:
 
     // Prints the list
     void print();
+    // Convert a char list to string
+    string to_string() const;
+    // Add a string to a char list
+    void add(const char *data);
 };
 
 // Print funtion for char
 template <>
 void LinkedList<char>::print()
 {
+    if (head == nullptr)
+        return;
     Node *current = head;
     while (current != nullptr)
     {
         printw("%c", current->data);
         current = current->next;
     }
-    printw("\n");
 }
 
-// Print function for string
+// Print function for LinkedList
 template <>
 void LinkedList<string>::print()
 {
+    if (head == nullptr)
+        return;
     Node *current = head;
     while (current != nullptr)
     {
-        printw("%s ", current->data.c_str());
+        printw("%s", current->data.c_str());
+        printw(" ");
         current = current->next;
     }
-    printw("\n");
+}
+
+// Convert char list to string
+template <>
+string LinkedList<char>::to_string() const
+{
+    string result = "";
+    Node *current = head;
+    while (current != nullptr)
+    {
+        result += current->data;
+        current = current->next;
+    }
+    return result;
+}
+
+// Add a string to a char list
+template <>
+void LinkedList<char>::add(const char *data)
+{
+    while (*data != '\0')
+    {
+        add(*data);
+        data++;
+    }
 }
 
 class AVLTree
@@ -415,7 +489,7 @@ public:
 };
 
 // Load the data from dictionary.txt in the AVL tree
-void load_data(AVLTree &words)
+void load_data(AVLTree &dictionary)
 {
     ifstream file("dictionary.txt");
     if (!file.is_open())
@@ -425,7 +499,13 @@ void load_data(AVLTree &words)
     }
     string word;
     while (file >> word)
-        words.insert(word);
+    {
+        // Smallercase the word
+        for (int i = 0; i < word.length(); i++)
+            if (word[i] >= 'A' && word[i] <= 'Z')
+                word[i] += 32;
+        dictionary.insert(word);
+    }
 
     file.close();
 }
@@ -438,41 +518,45 @@ int main()
 
     system("stty -ixon");
 
-    // LinkedList letters;
-    // AVLTree words;
-    // load_data(words); // Load data from the dictionary
+    LinkedList<char> letters;
+    LinkedList<string> words; // Implementing a list of list of characters representing a string
+    AVLTree dictionary;
+    load_data(dictionary); // Load data from the dictionary
 
-    // while (true)
-    // {
-    //     type c = getch();
-    //     if (c == 27) // ESC key
-    //     {
-    //         printw("\nExiting...\n");
-    //         break;
-    //     }
-    //     letters.add(c);
+    while (true)
+    {
+        char c = getch();
+        if (c == 27) // ESC key
+        {
+            printw("\nExiting...\n");
+            break;
+        }
+        else if (c == KEY_BACKSPACE || c == 127) // Backspace key
+        {
+            if (letters.isEmpty())
+            {
+                letters.add(words.last().c_str());
+                words.remove(words.size - 1);
+            }
+            else
+                letters.remove(letters.size - 1);
+        }
+        else if (c == ' ')
+        {
+            words.add(letters.to_string());
+            letters.clear();
+        }
+        else if (c == 12) // CTRL + L
+            printw("CTRL + L pressed...!\n");
+        else if (c == 19) // CTRL + S
+            printw("CTRL + S pressed...!\n");
+        else
+            letters.add(c);
 
-    //     if (c == KEY_BACKSPACE || c == 127) // Backspace key
-    //         printw("BACKSPACE key pressed...!\n");
-    //     else if (c == 12) // CTRL + L
-    //         printw("CTRL + L pressed...!\n");
-    //     else if (c == 19) // CTRL + S
-    //         printw("CTRL + S pressed...!\n");
-    //     else
-    //         printw("%c pressed!\n", c);
-
-    //     clear(); // Clear the screen
-    //     letters.print();
-    // }
-
-    LinkedList<string> stack;
-
-    stack.add("Hello", 0);
-    stack.add("World", 0);
-    stack.add("This", 1);
-    stack.add("Is", 2);
-
-    stack.print();
+        clear(); // Clear the screen
+        words.print();
+        letters.print();
+    }
 
     getch();
     endwin(); // End ncurses mode
