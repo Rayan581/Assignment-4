@@ -50,4 +50,4 @@ Hello! How are you?
 ```
 
 ## Output Screenshot
-![Output Screenshot][/screenshots/output.png]
+![Output Screenshot][screenshots/output.png]
