@@ -536,16 +536,25 @@ void load_data(AVLTree &dictionary)
 
 bool isPunctuation(const char c)
 {
-    return c == '.' || c == ',' || c == '!' || c == '?' || c == ':' || c == ';' || c == '"' || c == '\'';
+    return c == '.' || c == ',' || c == '!' || c == '?' || c == ':' || c == ';' || c == '"' || c == '\'' || c == '(' || c == '{' || c == '[' || c == ')' || c == '}' || c == ']';
+}
+
+string removePunctuation(string word)
+{
+    string newWord = "";
+    for (char c : word)
+    {
+        if (!isPunctuation(c))
+            newWord += c;
+    }
+    return newWord;
 }
 
 // Check if a string in the dictionary matches with the word by letter substitution
-string substitution(AVLTree &dictionary, const string &word)
+string substitution(AVLTree &dictionary, string word)
 {
     for (int i = 0; i < word.length(); i++)
     {
-        if (isPunctuation(word[i]))
-            continue;
         for (char c = 'a'; c <= 'z'; c++)
         {
             if (c == word[i])
@@ -559,19 +568,141 @@ string substitution(AVLTree &dictionary, const string &word)
     return ""; // No match found
 }
 
+// Check if a string in the dictionary matches with the word by letter omission
+string omission(AVLTree &dictionary, string word)
+{
+    for (int i = 0; i < word.length(); i++)
+    {
+        string newWord = "";
+        for (int j = 0; j < word.length(); j++)
+            if (j != i)
+                newWord += word[j];
+        if (dictionary.contains(newWord))
+            return newWord;
+    }
+    return ""; // No match found
+}
+
+// Check if a string in the dictionary matches with the word by letter insertion
+string insertion(AVLTree &dictionary, string word)
+{
+    for (int i = 0; i < word.length() + 1; i++)
+    {
+        for (char c = 'a'; c <= 'z'; c++)
+        {
+            string newWord = "";
+            for (int j = 0; j < i; j++)
+                newWord += word[j];
+            newWord += c;
+            for (int j = i; j < word.length(); j++)
+                newWord += word[j];
+            if (dictionary.contains(newWord))
+                return newWord;
+        }
+    }
+    return ""; // No match found
+}
+
+// Check if a string in the dictionary matches with the word by swapping adjacent letters
+string swapping(AVLTree &dictionary, string word)
+{
+    for (int i = 0; i < word.length() - 1; i++)
+    {
+        string newWord = "";
+        for (int j = 0; j < i; j++)
+            newWord += word[j];
+        newWord += word[i + 1];
+        newWord += word[i];
+        for (int j = i + 2; j < word.length(); j++)
+            newWord += word[j];
+        if (dictionary.contains(newWord))
+            return newWord;
+    }
+    return ""; // No match found
+}
+
 // Find a suggestion for the word that closely matches the word in the dictionary
-string suggestion(AVLTree &dictionary, const string &word)
+string suggestion(AVLTree &dictionary, const string word)
 {
     string suggestions = "";
+
     // Letter Substitution
     string substitutionWord = substitution(dictionary, word);
     if (!substitutionWord.empty())
-        suggestions += suggestions + substitutionWord;
+        suggestions += substitutionWord;
+
     // Letter Omission
+    string omissionWord = omission(dictionary, word);
+    if (!omissionWord.empty())
+    {
+        if (!substitutionWord.empty())
+            suggestions += ", ";
+        suggestions += omissionWord;
+    }
+
     // Letter Insertion
+    string insertionWord = insertion(dictionary, word);
+    if (!insertionWord.empty())
+    {
+        if (!substitutionWord.empty() || !omissionWord.empty())
+            suggestions += ", ";
+        suggestions += insertionWord;
+    }
+
     // Letter Reversal
+    string swappingWord = swapping(dictionary, word);
+    if (!swappingWord.empty())
+    {
+        if (!substitutionWord.empty() || !omissionWord.empty() || !insertionWord.empty())
+            suggestions += ", ";
+        suggestions += swappingWord;
+    }
 
     return suggestions;
+}
+
+// Saving the text in the save.txt file
+void save(LinkedList<string> &words, LinkedList<char> &letters)
+{
+    ofstream file("save.txt");
+    if (!file.is_open())
+    {
+        printw("Error opening save.txt file.\n");
+        return;
+    }
+    printw("Saving text...\n");
+
+    for (int i = 0; i < words.size; i++)
+        file << words[i] << " ";
+    for (int i = 0; i < letters.size; i++)
+        file << letters[i];
+
+    file.close();
+}
+
+// Loading the text from a text file
+void load(LinkedList<string> &words)
+{
+    char filename[20];
+    printw("Enter file name: ");
+    getstr(filename);
+
+    ifstream file(filename);
+    if (!file.is_open())
+    {
+        printw("Cannot open ");
+        printw("%s", filename);
+        printw(". File not found!\n");
+        return;
+    }
+
+    printw("Loading text...\n");
+
+    string word;
+    while (file >> word)
+        words.add(word);
+
+    file.close();
 }
 
 int main()
@@ -611,17 +742,29 @@ int main()
         }
         else if (c == ' ') // When the user presses spacebar
         {
-            words.add(letters.to_string()); // Add the currently formed word in the words list
-            letters.clear();                // Clear the letters list to form a new word
+            if (!letters.isEmpty())
+            {
+                words.add(letters.to_string()); // Add the currently formed word in the words list
+                letters.clear();                // Clear the letters list to form a new word
 
-            // Check the word in the dictionary
-            if (!dictionary.contains(words.last()))
-                suggestions = suggestion(dictionary, words.last());
+                string newWord = removePunctuation(words.last());
+
+                // Check the word in the dictionary
+                if (!dictionary.contains(newWord) && !newWord.empty())
+                    suggestions = suggestion(dictionary, newWord);
+            }
         }
         else if (c == 12) // CTRL + L
-            printw("CTRL + L pressed...!\n");
+        {
+            if (!words.isEmpty())
+                words.clear();
+            if (!letters.isEmpty())
+                letters.clear();
+
+            load(words);
+        }
         else if (c == 19) // CTRL + S
-            printw("CTRL + S pressed...!\n");
+            save(words, letters);
         else
             letters.add(c);
 
